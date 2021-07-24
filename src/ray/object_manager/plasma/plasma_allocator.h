@@ -35,10 +35,9 @@ namespace plasma {
 // based mmap file.
 class PlasmaAllocator : public IAllocator {
  public:
-  /// PlasmaAllocator can only be created once per process.
-  /// This is because it uses dlmalloc to allocate memory under the hood,
-  /// whose metadata is a global state(singleton).
-  static PlasmaAllocator &GetInstance();
+  PlasmaAllocator(const std::string &plasma_directory,
+                  const std::string &fallback_directory, bool hugepage_enabled,
+                  int64_t footprint_limit);
 
   /// On linux, it allocates memory from a pre-mmaped file from /dev/shm.
   /// On other system, it allocates memory from a pre-mmaped file on disk.
@@ -63,9 +62,6 @@ class PlasmaAllocator : public IAllocator {
   /// \param allocation allocation to free.
   void Free(const Allocation &allocation) override;
 
-  /// Sets the memory footprint limit for this allocator.
-  void SetFootprintLimit(size_t bytes) override;
-
   /// Get the memory footprint limit for this allocator.
   int64_t GetFootprintLimit() const override;
 
@@ -76,13 +72,10 @@ class PlasmaAllocator : public IAllocator {
   int64_t FallbackAllocated() const override;
 
  private:
-  explicit PlasmaAllocator(size_t alignment);
-
- private:
+  const int64_t kFootprintLimit;
   const size_t kAlignment;
   int64_t allocated_;
   int64_t fallback_allocated_;
-  int64_t footprint_limit_;
 };
 
 }  // namespace plasma

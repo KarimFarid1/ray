@@ -22,8 +22,12 @@
 #include "ray/object_manager/plasma/plasma_allocator.h"
 
 namespace plasma {
-
+namespace detail {
 bool IsOutsideInitialAllocation(void *ptr);
+
+void SetDLMallocConfig(const std::string &plasma_directory,
+                       const std::string &fallback_directory, bool hugepage_enabled);
+}  // namespace detail
 
 extern "C" {
 void *dlmemalign(size_t alignment, size_t bytes);
@@ -58,16 +62,28 @@ absl::optional<Allocation> BuildAllocation(void *addr, size_t size) {
   }
   return absl::nullopt;
 }
-
 }  // namespace
 
-/* static */ PlasmaAllocator &PlasmaAllocator::GetInstance() {
-  static PlasmaAllocator instance(kAllocationAlignment);
-  return instance;
+PlasmaAllocator::PlasmaAllocator(const std::string &plasma_directory,
+                                 const std::string &fallback_directory,
+                                 bool hugepage_enabled, int64_t footprint_limit)
+    : kFootprintLimit(footprint_limit),
+      kAlignment(kAllocationAlignment),
+      allocated_(0),
+      fallback_allocated_(0) {
+  detail::SetDLMallocConfig(plasma_directory, fallback_directory, hugepage_enabled);
+  // We are using a single memory-mapped file by mallocing and freeing a single
+  // large amount of space up front. According to the documentation,
+  // dlmalloc might need up to 128*sizeof(size_t) bytes for internal
+  // bookkeeping.
+  // TODO(scv119): this leaks details of PlasmaAlloctor,
+  // should be part of PlasmaAllocator contruction.
+  auto allocation = Allocate(kFootprintLimit - 256 * sizeof(size_t));
+  RAY_CHECK(allocation.has_value());
+  // This will unmap the file, but the next one created will be as large
+  // as this one (this is an implementation detail of dlmalloc).
+  Free(allocation.value());
 }
-
-PlasmaAllocator::PlasmaAllocator(size_t alignment)
-    : kAlignment(alignment), allocated_(0), fallback_allocated_(0), footprint_limit_(0) {}
 
 absl::optional<Allocation> PlasmaAllocator::Allocate(size_t bytes) {
   if (!RayConfig::instance().plasma_unlimited()) {
@@ -75,7 +91,7 @@ absl::optional<Allocation> PlasmaAllocator::Allocate(size_t bytes) {
     // In limited mode: the check is done here; dlmemalign never returns nullptr.
     // In unlimited mode: dlmemalign returns nullptr once the initial /dev/shm block
     // fills.
-    if (allocated_ + static_cast<int64_t>(bytes) > footprint_limit_) {
+    if (allocated_ + static_cast<int64_t>(bytes) > kFootprintLimit) {
       return absl::nullopt;
     }
   }
@@ -104,7 +120,7 @@ absl::optional<Allocation> PlasmaAllocator::FallbackAllocate(size_t bytes) {
 
   allocated_ += bytes;
   // The allocation was servicable using the initial region, no need to fallback.
-  if (IsOutsideInitialAllocation(mem)) {
+  if (detail::IsOutsideInitialAllocation(mem)) {
     fallback_allocated_ += bytes;
   }
   return BuildAllocation(mem, bytes);
@@ -116,19 +132,14 @@ void PlasmaAllocator::Free(const Allocation &allocation) {
   dlfree(allocation.address);
   allocated_ -= allocation.size;
   if (RayConfig::instance().plasma_unlimited() &&
-      IsOutsideInitialAllocation(allocation.address)) {
+      detail::IsOutsideInitialAllocation(allocation.address)) {
     fallback_allocated_ -= allocation.size;
   }
 }
 
-void PlasmaAllocator::SetFootprintLimit(size_t bytes) {
-  footprint_limit_ = static_cast<int64_t>(bytes);
-}
-
-int64_t PlasmaAllocator::GetFootprintLimit() const { return footprint_limit_; }
+int64_t PlasmaAllocator::GetFootprintLimit() const { return kFootprintLimit; }
 
 int64_t PlasmaAllocator::Allocated() const { return allocated_; }
 
 int64_t PlasmaAllocator::FallbackAllocated() const { return fallback_allocated_; }
-
 }  // namespace plasma
