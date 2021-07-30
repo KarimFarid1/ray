@@ -1,4 +1,5 @@
 from ray.rllib.env.dm_control_wrapper import DMCEnv
+from ray.rllib.env.randomized_dm_control import RDMCEnv
 """
 8 Environments from Deepmind Control Suite
 """
@@ -130,6 +131,142 @@ def humanoid_walk(from_pixels=True,
                   frame_skip=2,
                   channels_first=True):
     return DMCEnv(
+        "humanoid",
+        "walk",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+#Random environments
+def random_acrobot_swingup(from_pixels=True,
+                    height=64,
+                    width=64,
+                    frame_skip=2,
+                    channels_first=True):
+    return RDMCEnv(
+        "acrobot",
+        "swingup",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_walker_walk(from_pixels=True,
+                height=64,
+                width=64,
+                frame_skip=2,
+                channels_first=True):
+    return RDMCEnv(
+        "walker",
+        "walk",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_hopper_hop(from_pixels=True,
+               height=64,
+               width=64,
+               frame_skip=2,
+               channels_first=True):
+    return RDMCEnv(
+        "hopper",
+        "hop",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_hopper_stand(from_pixels=True,
+                 height=64,
+                 width=64,
+                 frame_skip=2,
+                 channels_first=True):
+    return RDMCEnv(
+        "hopper",
+        "stand",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_cheetah_run(from_pixels=True,
+                height=64,
+                width=64,
+                frame_skip=2,
+                channels_first=True):
+    return RDMCEnv(
+        "cheetah",
+        "run",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_walker_run(from_pixels=True,
+               height=64,
+               width=64,
+               frame_skip=2,
+               channels_first=True):
+    return RDMCEnv(
+        "walker",
+        "run",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_pendulum_swingup(from_pixels=True,
+                     height=64,
+                     width=64,
+                     frame_skip=2,
+                     channels_first=True):
+    return RDMCEnv(
+        "pendulum",
+        "swingup",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_cartpole_swingup(from_pixels=True,
+                     height=64,
+                     width=64,
+                     frame_skip=2,
+                     channels_first=True):
+    return RDMCEnv(
+        "cartpole",
+        "swingup",
+        from_pixels=from_pixels,
+        height=height,
+        width=width,
+        frame_skip=frame_skip,
+        channels_first=channels_first)
+
+
+def random_humanoid_walk(from_pixels=True,
+                  height=64,
+                  width=64,
+                  frame_skip=2,
+                  channels_first=True):
+    return RDMCEnv(
         "humanoid",
         "walk",
         from_pixels=from_pixels,
